@@ -24,6 +24,7 @@
     --success-foreground: 210 40% 98%;
     --border: 214 32% 91%;
     --input: 214 32% 91%;
+    --input-background: 0 0% 100%;
     --ring: 202 68% 67%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -62,6 +63,7 @@
     --success-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
+    --input-background: 217.2 32.6% 17.5%;
     --ring: 202 68% 75%;
     --sidebar-background: 222.2 84% 4.9%;
     --sidebar-foreground: 210 40% 98%;
