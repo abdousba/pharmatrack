@@ -132,10 +132,8 @@ function InventoryPageComponent() {
     category: '',
     minQty: '',
     maxQty: '',
-    dateAddedFrom: '',
-    dateAddedTo: '',
-    dateUpdatedFrom: '',
-    dateUpdatedTo: '',
+    dateAdded: '',
+    dateExpiry: '',
     rotation: '',
   });
 
@@ -163,10 +161,8 @@ function InventoryPageComponent() {
       category: '',
       minQty: '',
       maxQty: '',
-      dateAddedFrom: '',
-      dateAddedTo: '',
-      dateUpdatedFrom: '',
-      dateUpdatedTo: '',
+      dateAdded: '',
+      dateExpiry: '',
       rotation: '',
     });
     setShowAdvancedFilters(false);
@@ -267,30 +263,37 @@ function InventoryPageComponent() {
     const parseDate = (dateString: string): Date | null => {
         if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) return null;
         const [day, month, year] = dateString.split('/').map(Number);
+        if (day > 31 || month > 12 || year < 1900) return null;
         return new Date(year, month - 1, day);
     };
 
     // Date filters
-    const fromDateAdded = parseDate(advancedFilters.dateAddedFrom);
-    if (fromDateAdded) {
-        fromDateAdded.setHours(0, 0, 0, 0);
-        finalResults = finalResults.filter(d => d.createdAt && new Date(d.createdAt) >= fromDateAdded);
+    const addedDate = parseDate(advancedFilters.dateAdded);
+    if (addedDate) {
+        addedDate.setHours(0, 0, 0, 0);
+        const addedDateEnd = new Date(addedDate);
+        addedDateEnd.setHours(23, 59, 59, 999);
+        finalResults = finalResults.filter(d => {
+            if (!d.createdAt) return false;
+            const drugAddedDate = new Date(d.createdAt);
+            return drugAddedDate >= addedDate && drugAddedDate <= addedDateEnd;
+        });
     }
-    const toDateAdded = parseDate(advancedFilters.dateAddedTo);
-    if (toDateAdded) {
-        toDateAdded.setHours(23, 59, 59, 999);
-        finalResults = finalResults.filter(d => d.createdAt && new Date(d.createdAt) <= toDateAdded);
-    }
-    
-    const fromDateUpdated = parseDate(advancedFilters.dateUpdatedFrom);
-    if (fromDateUpdated) {
-        fromDateUpdated.setHours(0, 0, 0, 0);
-        finalResults = finalResults.filter(d => d.updatedAt && new Date(d.updatedAt) >= fromDateUpdated);
-    }
-    const toDateUpdated = parseDate(advancedFilters.dateUpdatedTo);
-    if (toDateUpdated) {
-        toDateUpdated.setHours(23, 59, 59, 999);
-        finalResults = finalResults.filter(d => d.updatedAt && new Date(d.updatedAt) <= toDateUpdated);
+
+    const expiryDateFilter = parseDate(advancedFilters.dateExpiry);
+    if (expiryDateFilter) {
+        expiryDateFilter.setHours(0, 0, 0, 0);
+        const expiryDateEnd = new Date(expiryDateFilter);
+        expiryDateEnd.setHours(23, 59, 59, 999);
+        finalResults = finalResults.filter(d => {
+            if (!d.expiryDate || d.expiryDate === 'N/A') return false;
+            try {
+                const drugExpiryDate = new Date(d.expiryDate);
+                return drugExpiryDate >= expiryDateFilter && drugExpiryDate <= expiryDateEnd;
+            } catch (e) {
+                return false;
+            }
+        });
     }
     
     // Rotation filter
@@ -666,45 +669,27 @@ function InventoryPageComponent() {
                       />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">Date d'ajout</Label>
-                        <div className="col-span-3 grid grid-cols-2 gap-2">
-                            <div className="relative">
-                                <Input
-                                    placeholder="JJ/MM/AAAA"
-                                    value={advancedFilters.dateAddedFrom}
-                                    onChange={(e) => handleAdvancedFilterChange('dateAddedFrom', e.target.value)}
-                                />
-                                <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
-                            </div>
-                            <div className="relative">
-                                <Input
-                                    placeholder="Fin (JJ/MM/AAAA)"
-                                    value={advancedFilters.dateAddedTo}
-                                    onChange={(e) => handleAdvancedFilterChange('dateAddedTo', e.target.value)}
-                                />
-                                <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
-                            </div>
+                        <Label htmlFor="date-added-filter" className="text-right">Date d'ajout</Label>
+                        <div className="relative col-span-3">
+                            <Input
+                                id="date-added-filter"
+                                placeholder="JJ/MM/AAAA"
+                                value={advancedFilters.dateAdded}
+                                onChange={(e) => handleAdvancedFilterChange('dateAdded', e.target.value)}
+                            />
+                            <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
                         </div>
                     </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">Date de MàJ</Label>
-                        <div className="col-span-3 grid grid-cols-2 gap-2">
-                           <div className="relative">
-                                <Input
-                                    placeholder="Début (JJ/MM/AAAA)"
-                                    value={advancedFilters.dateUpdatedFrom}
-                                    onChange={(e) => handleAdvancedFilterChange('dateUpdatedFrom', e.target.value)}
-                                />
-                                <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
-                            </div>
-                            <div className="relative">
-                                <Input
-                                    placeholder="Fin (JJ/MM/AAAA)"
-                                    value={advancedFilters.dateUpdatedTo}
-                                    onChange={(e) => handleAdvancedFilterChange('dateUpdatedTo', e.target.value)}
-                                />
-                                <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
-                            </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="date-expiry-filter" className="text-right">Date d'exp.</Label>
+                        <div className="relative col-span-3">
+                            <Input
+                                id="date-expiry-filter"
+                                placeholder="JJ/MM/AAAA"
+                                value={advancedFilters.dateExpiry}
+                                onChange={(e) => handleAdvancedFilterChange('dateExpiry', e.target.value)}
+                            />
+                            <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
                         </div>
                     </div>
                   </div>
