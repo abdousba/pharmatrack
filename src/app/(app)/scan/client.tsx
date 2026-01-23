@@ -814,7 +814,7 @@ export default function ScanClientPage() {
             </div>
             <div className="grid w-full max-w-2xl grid-cols-1 gap-8 md:grid-cols-2">
                 <Card 
-                    className="flex cursor-pointer flex-col items-center justify-center p-8 text-center transition-colors hover:bg-muted"
+                    className="flex cursor-pointer flex-col items-center justify-center p-8 text-center transition-all hover:bg-muted active:scale-95"
                     onClick={() => setMode('pch')}
                 >
                     <Plus className="h-12 w-12 text-green-500" />
@@ -823,7 +823,7 @@ export default function ScanClientPage() {
                 </Card>
 
                 <Card 
-                    className="flex cursor-pointer flex-col items-center justify-center p-8 text-center transition-colors hover:bg-muted"
+                    className="flex cursor-pointer flex-col items-center justify-center p-8 text-center transition-all hover:bg-muted active:scale-95"
                     onClick={() => setMode('distribution')}
                 >
                     <Minus className="h-12 w-12 text-red-500" />

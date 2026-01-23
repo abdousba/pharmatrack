@@ -112,7 +112,7 @@ export default function DashboardClientPage() {
     <div className="space-y-4 md:space-y-8">
       <div className="grid grid-cols-2 gap-4 md:grid-cols-2 md:gap-8 xl:grid-cols-4">
         <Link href="/inventory">
-          <Card className="hover:border-primary/80 hover:bg-muted transition-colors cursor-pointer">
+          <Card className="hover:border-primary/80 hover:bg-muted transition-all cursor-pointer active:scale-95">
             <CardHeader className="p-3 pb-2">
               <CardTitle className="text-sm font-medium">Lots de médicaments</CardTitle>
             </CardHeader>
@@ -125,7 +125,7 @@ export default function DashboardClientPage() {
           </Card>
         </Link>
         <Link href="/inventory?filter=low_stock">
-          <Card className="hover:border-primary/80 hover:bg-muted transition-colors cursor-pointer">
+          <Card className="hover:border-primary/80 hover:bg-muted transition-all cursor-pointer active:scale-95">
             <CardHeader className="p-3 pb-2">
               <CardTitle className="text-sm font-medium">Articles en stock faible</CardTitle>
             </CardHeader>
@@ -138,7 +138,7 @@ export default function DashboardClientPage() {
           </Card>
         </Link>
         <Link href="/inventory?filter=nearing_expiry">
-          <Card className="hover:border-primary/80 hover:bg-muted transition-colors cursor-pointer">
+          <Card className="hover:border-primary/80 hover:bg-muted transition-all cursor-pointer active:scale-95">
             <CardHeader className="p-3 pb-2">
               <CardTitle className="text-sm font-medium">Proche de l'expiration</CardTitle>
             </CardHeader>
