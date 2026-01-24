@@ -48,8 +48,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { DRUG_CATEGORIES } from "@/lib/categories";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -506,8 +504,11 @@ function InventoryPageComponent() {
     });
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!filteredDrugs || filteredDrugs.length === 0) return;
+
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
 
     const doc = new jsPDF();
     doc.setFont('helvetica', 'normal');
