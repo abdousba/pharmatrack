@@ -12,7 +12,7 @@ import {
   ChartContainer,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { Drug, Service, Distribution } from '@/lib/types';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
@@ -35,38 +35,18 @@ export default function DashboardClientPage() {
   
   const isLoading = drugsLoading || servicesLoading || distributionsLoading || isAuthLoading;
 
-  // State for lazy loading charts
+  // State for deferred loading of charts to improve initial TBT.
   const [chartsVisible, setChartsVisible] = useState(false);
-  const chartContainerRef = useRef(null);
 
-  // Effect for IntersectionObserver
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        // Update state when element is intersecting
-        if (entry.isIntersecting) {
-          setChartsVisible(true);
-          observer.disconnect(); // We only need to do this once
-        }
-      },
-      {
-        rootMargin: '0px',
-        threshold: 0.1, // Start loading when 10% of the component is visible
-      }
-    );
+    // Defer chart rendering until after the main thread is likely to be idle.
+    // This helps improve the initial page load performance metrics like Total Blocking Time.
+    const timer = setTimeout(() => {
+      setChartsVisible(true);
+    }, 300); // A small delay is enough to unblock the main thread.
 
-    const currentRef = chartContainerRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
-
-    return () => {
-      // Make sure to unobserve the element
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
-    };
-  }, []); // Empty dependency array ensures this runs only once on mount
+    return () => clearTimeout(timer);
+  }, []); // Run only once on mount
 
   const totalDrugs = drugs?.length ?? 0;
   const lowStockItems = useMemo(() => drugs?.filter(d => d.currentStock < d.lowStockThreshold).length ?? 0, [drugs]);
@@ -95,7 +75,8 @@ export default function DashboardClientPage() {
 
 
   const distributionByService = useMemo(() => {
-    if (!services || !distributions || !chartsVisible) return []; // Don't compute if charts are not visible
+    // Don't compute if charts are not visible yet or data is not ready
+    if (!services || !distributions || !chartsVisible) return []; 
     const serviceCounts: { [key: string]: number } = {};
     for (const service of services) {
       serviceCounts[service.name] = 0;
@@ -116,7 +97,8 @@ export default function DashboardClientPage() {
   }, [services, distributions, chartsVisible]);
 
   const topDistributedDrugs = useMemo(() => {
-    if (!distributions || !chartsVisible) return []; // Don't compute if charts are not visible
+    // Don't compute if charts are not visible yet or data is not ready
+    if (!distributions || !chartsVisible) return []; 
     
     const drugCounts: { [name: string]: number } = {};
 
@@ -197,7 +179,7 @@ export default function DashboardClientPage() {
         </Card>
       </div>
 
-      <div ref={chartContainerRef} className="grid grid-cols-1 gap-4 md:gap-8 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:gap-8 lg:grid-cols-3">
         {chartsVisible ? (
           <>
             <Card className="lg:col-span-2">
