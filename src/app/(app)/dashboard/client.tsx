@@ -12,12 +12,13 @@ import {
   ChartContainer,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import { useMemo } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import type { Drug, Service, Distribution } from '@/lib/types';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import Link from 'next/link';
 import { DashboardSkeleton } from './skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function DashboardClientPage() {
@@ -33,6 +34,39 @@ export default function DashboardClientPage() {
   const { data: distributions, isLoading: distributionsLoading } = useCollection<Distribution>(distributionsQuery);
   
   const isLoading = drugsLoading || servicesLoading || distributionsLoading || isAuthLoading;
+
+  // State for lazy loading charts
+  const [chartsVisible, setChartsVisible] = useState(false);
+  const chartContainerRef = useRef(null);
+
+  // Effect for IntersectionObserver
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Update state when element is intersecting
+        if (entry.isIntersecting) {
+          setChartsVisible(true);
+          observer.disconnect(); // We only need to do this once
+        }
+      },
+      {
+        rootMargin: '0px',
+        threshold: 0.1, // Start loading when 10% of the component is visible
+      }
+    );
+
+    const currentRef = chartContainerRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      // Make sure to unobserve the element
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   const totalDrugs = drugs?.length ?? 0;
   const lowStockItems = useMemo(() => drugs?.filter(d => d.currentStock < d.lowStockThreshold).length ?? 0, [drugs]);
@@ -61,7 +95,7 @@ export default function DashboardClientPage() {
 
 
   const distributionByService = useMemo(() => {
-    if (!services || !distributions) return [];
+    if (!services || !distributions || !chartsVisible) return []; // Don't compute if charts are not visible
     const serviceCounts: { [key: string]: number } = {};
     for (const service of services) {
       serviceCounts[service.name] = 0;
@@ -79,10 +113,10 @@ export default function DashboardClientPage() {
       .map(([name, total]) => ({ name, total }))
       .filter(item => item.total > 0) // Only show services with distributions
       .sort((a,b) => b.total - a.total); // Sort by total
-  }, [services, distributions]);
+  }, [services, distributions, chartsVisible]);
 
   const topDistributedDrugs = useMemo(() => {
-    if (!distributions) return [];
+    if (!distributions || !chartsVisible) return []; // Don't compute if charts are not visible
     
     const drugCounts: { [name: string]: number } = {};
 
@@ -94,7 +128,7 @@ export default function DashboardClientPage() {
         .map(([name, total]) => ({ name, total }))
         .sort((a, b) => b.total - a.total)
         .slice(0, 5);
-  }, [distributions]);
+  }, [distributions, chartsVisible]);
 
   const PASTEL_COLORS = [
     "hsl(12, 100%, 85%)",   // Light Salmon (Warmest)
@@ -163,71 +197,100 @@ export default function DashboardClientPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:gap-8 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Aperçu de la distribution par Service</CardTitle>
-            <CardDescription>
-              Quantité totale de médicaments distribués par service.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pl-2 pr-6">
-            {/* Desktop Chart */}
-            <div className="hidden h-[300px] w-full sm:block">
-              <ChartContainer config={{}} className="h-full w-full">
-                <BarChart data={distributionByService} margin={{ top: 5, right: 20, left: 0, bottom: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false}/>
-                  <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} angle={-35} textAnchor="end" height={60} interval={0} />
-                  <YAxis />
-                  <Tooltip cursor={{ fill: 'hsl(var(--accent))', radius: 'var(--radius)' }} content={<ChartTooltipContent />} />
-                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={4} />
-                </BarChart>
-              </ChartContainer>
-            </div>
-            {/* Mobile Chart */}
-            <div className="h-[400px] w-full sm:hidden">
-              <ChartContainer config={{}} className="h-full w-full">
-                  <BarChart data={distributionByService} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false}/>
-                      <XAxis type="number" />
-                      <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tickMargin={5} width={80} interval={0} />
+      <div ref={chartContainerRef} className="grid grid-cols-1 gap-4 md:gap-8 lg:grid-cols-3">
+        {chartsVisible ? (
+          <>
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Aperçu de la distribution par Service</CardTitle>
+                <CardDescription>
+                  Quantité totale de médicaments distribués par service.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pl-2 pr-6">
+                {/* Desktop Chart */}
+                <div className="hidden h-[300px] w-full sm:block">
+                  <ChartContainer config={{}} className="h-full w-full">
+                    <BarChart data={distributionByService} margin={{ top: 5, right: 20, left: 0, bottom: 60 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                      <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} angle={-35} textAnchor="end" height={60} interval={0} />
+                      <YAxis />
                       <Tooltip cursor={{ fill: 'hsl(var(--accent))', radius: 'var(--radius)' }} content={<ChartTooltipContent />} />
                       <Bar dataKey="total" fill="hsl(var(--primary))" radius={4} />
-                  </BarChart>
-              </ChartContainer>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-            <CardHeader>
-                <CardTitle>Top 5 des médicaments</CardTitle>
-                <CardDescription>Les plus distribués</CardDescription>
-            </CardHeader>
-            <CardContent className="pl-2 pr-6">
-                {topDistributedDrugs.length > 0 ? (
-                  <div className="h-[250px] w-full">
-                    <ChartContainer config={{}} className="h-full w-full">
-                        <BarChart data={topDistributedDrugs} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={false}/>
-                            <XAxis type="number" />
-                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tickMargin={5} width={100} interval={0} tick={{ fontSize: 12 }}/>
-                            <Tooltip cursor={{ fill: 'hsl(var(--accent))', radius: 'var(--radius)' }} content={<ChartTooltipContent />} />
-                            <Bar dataKey="total" radius={[0, 4, 4, 0]}>
-                                {topDistributedDrugs.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={PASTEL_COLORS[index % PASTEL_COLORS.length]} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ChartContainer>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-[250px] text-sm text-muted-foreground">
-                    Aucune donnée de distribution pour le moment.
-                  </div>
-                )}
-            </CardContent>
-        </Card>
+                    </BarChart>
+                  </ChartContainer>
+                </div>
+                {/* Mobile Chart */}
+                <div className="h-[400px] w-full sm:hidden">
+                  <ChartContainer config={{}} className="h-full w-full">
+                      <BarChart data={distributionByService} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false}/>
+                          <XAxis type="number" />
+                          <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tickMargin={5} width={80} interval={0} />
+                          <Tooltip cursor={{ fill: 'hsl(var(--accent))', radius: 'var(--radius)' }} content={<ChartTooltipContent />} />
+                          <Bar dataKey="total" fill="hsl(var(--primary))" radius={4} />
+                      </BarChart>
+                  </ChartContainer>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle>Top 5 des médicaments</CardTitle>
+                    <CardDescription>Les plus distribués</CardDescription>
+                </CardHeader>
+                <CardContent className="pl-2 pr-6">
+                    {topDistributedDrugs.length > 0 ? (
+                      <div className="h-[250px] w-full">
+                        <ChartContainer config={{}} className="h-full w-full">
+                            <BarChart data={topDistributedDrugs} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" horizontal={false}/>
+                                <XAxis type="number" />
+                                <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tickMargin={5} width={100} interval={0} tick={{ fontSize: 12 }}/>
+                                <Tooltip cursor={{ fill: 'hsl(var(--accent))', radius: 'var(--radius)' }} content={<ChartTooltipContent />} />
+                                <Bar dataKey="total" radius={[0, 4, 4, 0]}>
+                                    {topDistributedDrugs.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={PASTEL_COLORS[index % PASTEL_COLORS.length]} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ChartContainer>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-[250px] text-sm text-muted-foreground">
+                        Aucune donnée de distribution pour le moment.
+                      </div>
+                    )}
+                </CardContent>
+            </Card>
+          </>
+        ) : (
+          <>
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Aperçu de la distribution par Service</CardTitle>
+                <CardDescription>
+                  Quantité totale de médicaments distribués par service.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[400px] w-full flex items-center justify-center sm:h-[300px]">
+                  <Skeleton className="h-full w-full" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Top 5 des médicaments</CardTitle>
+                    <CardDescription>Les plus distribués</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="w-full h-[250px]" />
+                </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </div>
   );
