@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Boxes, Hospital, LayoutDashboard, Settings, Wand2, ScanLine } from 'lucide-react';
+import { Boxes, Hospital, LayoutDashboard, Settings, Wand2, ScanLine, BarChart } from 'lucide-react';
 import {
   SidebarHeader,
   SidebarMenu,
@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator';
 
 const links = [
   { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
+  { href: '/analytics', label: 'Analyses', icon: BarChart },
   { href: '/inventory', label: 'Inventaire', icon: Boxes },
   { href: '/scan', label: 'Scanner Produits', icon: ScanLine },
   { href: '/adjustments', label: 'Ajustements', icon: Wand2 },
@@ -47,7 +48,7 @@ export function SidebarNav() {
             <SidebarMenuItem key={link.href}>
               <Link href={link.href} className="w-full" onClick={handleLinkClick}>
                 <SidebarMenuButton
-                  isActive={pathname === link.href}
+                  isActive={pathname.startsWith(link.href)}
                   tooltip={link.label}
                 >
                   <link.icon />

@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ScanLine, Boxes, LayoutDashboard } from 'lucide-react';
+import { ScanLine, Boxes, LayoutDashboard, BarChart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', label: 'T. de Bord', icon: LayoutDashboard },
-  { href: '/scan', label: 'Scanner', icon: ScanLine },
   { href: '/inventory', label: 'Inventaire', icon: Boxes },
+  { href: '/scan', label: 'Scanner', icon: ScanLine },
+  { href: '/analytics', label: 'Analyses', icon: BarChart },
 ];
 
 export function BottomNavBar() {
@@ -16,7 +17,7 @@ export function BottomNavBar() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-20 border-t bg-background/95 backdrop-blur-sm md:hidden">
-      <div className="grid h-16 grid-cols-3">
+      <div className="grid h-16 grid-cols-4">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
